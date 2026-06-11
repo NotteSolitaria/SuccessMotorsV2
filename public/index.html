@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+
+  <title>Salesforce Lead Form</title>
+
+  <!-- Firebase -->
+  <script defer src="/__/firebase/12.14.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-auth-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-database-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-firestore-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-functions-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-messaging-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-storage-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-analytics-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-remote-config-compat.js"></script>
+  <script defer src="/__/firebase/12.14.0/firebase-performance-compat.js"></script>
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+
+  <!-- Google reCAPTCHA -->
+  <script src="https://www.google.com/recaptcha/api.js"></script>
+
+  <script>
+    function timestamp() {
+      var response = document.getElementById("g-recaptcha-response");
+
+      if (response == null || response.value.trim() == "") {
+        var elems = JSON.parse(
+          document.getElementsByName("captcha_settings")[0].value
+        );
+
+        elems["ts"] = JSON.stringify(new Date().getTime());
+
+        document.getElementsByName("captcha_settings")[0].value =
+          JSON.stringify(elems);
+      }
+    }
+
+    setInterval(timestamp, 500);
+  </script>
+
+  <style media="screen">
+    .form-group {
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+.invalid {
+  border-color: #d32f2f !important;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+    body {
+      background: #ECEFF1;
+      color: rgba(0, 0, 0, 0.87);
+      font-family: Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #message {
+      background: white;
+      max-width: 500px;
+      margin: 100px auto 16px;
+      padding: 32px 24px;
+      border-radius: 3px;
+    }
+
+    #message h1 {
+      font-size: 22px;
+      font-weight: 300;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    input[type="submit"] {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #039be5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #load {
+      color: rgba(0, 0, 0, 0.4);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    #message,
+    #message a {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12),
+                  0 1px 2px rgba(0,0,0,0.24);
+    }
+
+    @media (max-width: 600px) {
+      body,
+      #message {
+        margin-top: 0;
+        background: white;
+        box-shadow: none;
+      }
+
+      body {
+        border-top: 16px solid #ffa100;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="message">
+    <h1>Contact Us</h1>
+
+    <form
+      action="https://webto.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8&orgId=00Dfj00000QjVez"
+      method="POST">
+
+      <input type="hidden"
+             name="captcha_settings"
+             value='{"keyname":"success","fallback":"true","orgId":"00Dfj00000QjVez","ts":""}'>
+
+      <input type="hidden"
+             name="oid"
+             value="00Dfj00000QjVez">
+
+      <input type="hidden"
+             name="retURL"
+             value="https://orgfarm-20c084e44c-dev-ed.develop.lightning.force.com/lightning/o/Lead/list?filterName=TodaysLeads">
+
+      <label for="company">Company</label>
+      <input id="company"
+             maxlength="40"
+             name="company"
+             type="text">
+
+      <label for="first_name">First Name</label>
+      <input id="first_name"
+             maxlength="40"
+             name="first_name"
+             type="text">
+
+      <label for="last_name">Last Name</label>
+      <input id="last_name"
+             maxlength="80"
+             name="last_name"
+             type="text">
+
+      <label for="email">Email</label>
+      <input id="email"
+             maxlength="80"
+             name="email"
+             type="text">
+
+      <label for="phone">Phone</label>
+      <input id="phone"
+             maxlength="40"
+             name="phone"
+             type="text">
+
+      <div class="form-group">
+  <label for="product">Product Type *</label>
+
+  <select id="product"
+          name="00Nfj00003kfGmL"
+          required>
+
+    <option value="">-- Select a product --</option>
+
+    <option value="R001C1">Renault Logan</option>
+    <option value="R002C2">Renault Logan Stepway</option>
+    <option value="R003C3">Renault Sandero</option>
+    <option value="R004C4">Renault Sandero Stepway</option>
+
+    <option value="R005E1">K7M</option>
+    <option value="R006E2">K4M</option>
+    <option value="R007E3">H4M</option>
+
+    <option value="HK001C1">Kia Rio</option>
+    <option value="HK002C2">Kia Rio X-Line</option>
+    <option value="HK003C3">Hyundai Accent</option>
+    <option value="HK004C4">Hyundai Solaris</option>
+
+    <option value="HK005E1">G4LC</option>
+    <option value="HK006E2">G4FG</option>
+
+    <option value="VAG001C1">Volkswagen Polo Sedan</option>
+    <option value="VAG002C2">Volkswagen Polo 2021</option>
+    <option value="VAG003C3">Skoda Rapid</option>
+
+    <option value="VAG004E1">CZCA</option>
+    <option value="VAG005E2">CFW</option>
+    <option value="VAG006E3">CWVA</option>
+    <option value="VAG007E4">CFNA</option>
+    <option value="VAG008E5">CFNB</option>
+
+    <option value="L001C1">Lada Vesta</option>
+    <option value="L002C2">Lada Xray</option>
+
+    <option value="L003E1">VAZ-21179</option>
+    <option value="L004E2">VAZ-21129</option>
+
+    <option value="R008A1">Carpets Renault</option>
+    <option value="HK007A1">Carpets Hyundai</option>
+    <option value="HK008A2">Carpets Kia</option>
+
+    <option value="VAG009A1">Carpets Volkswagen</option>
+    <option value="VAG010A2">Carpets Skoda</option>
+
+    <option value="L005A1">Carpets Lada</option>
+
+    <option value="MI001A1">Phone holder Xiaomi</option>
+
+  </select>
+
+  <div class="error-message" id="product-error">
+    Please select a product.
+  </div>
+  </div>
+
+      <br><br>
+
+      <div class="g-recaptcha"
+           data-sitekey="6LeyYBctAAAAAO-FI2BoeZk--TkyGipZrRQdEHkW">
+      </div>
+
+      <input type="submit" name="submit" value="Submit">
+    </form>
+  </div>
+
+  <p id="load">Firebase SDK Loading…</p>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const loadEl = document.querySelector('#load');
+
+      try {
+        let app = firebase.app();
+
+        let features = [
+          'auth',
+          'database',
+          'firestore',
+          'functions',
+          'messaging',
+          'storage',
+          'analytics',
+          'remoteConfig',
+          'performance'
+        ].filter(feature => typeof app[feature] === 'function');
+
+        loadEl.textContent =
+          `Firebase SDK loaded with ${features.join(', ')}`;
+      } catch (e) {
+        console.error(e);
+        loadEl.textContent =
+          'Error loading the Firebase SDK, check the console.';
+      }
+    });
+  </script>
+  <script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  const form = document.querySelector('form');
+
+  const fields = {
+    company: document.getElementById('company'),
+    first_name: document.getElementById('first_name'),
+    last_name: document.getElementById('last_name'),
+    email: document.getElementById('email'),
+    phone: document.getElementById('phone'),
+    product: document.getElementById('product')
+  };
+
+  function validateField(field) {
+
+    field.classList.remove('invalid');
+
+    if (!field.value.trim()) {
+      field.classList.add('invalid');
+      return false;
+    }
+
+    if (
+      field.type === 'email' &&
+      !field.checkValidity()
+    ) {
+      field.classList.add('invalid');
+      return false;
+    }
+
+    return true;
+  }
+
+  form.addEventListener('submit', function (e) {
+
+    let valid = true;
+
+    Object.values(fields).forEach(field => {
+      if (!validateField(field)) {
+        valid = false;
+      }
+    });
+
+    if (
+      typeof grecaptcha !== 'undefined' &&
+      grecaptcha.getResponse().length === 0
+    ) {
+      valid = false;
+      alert('Please complete reCAPTCHA.');
+    }
+
+    if (!valid) {
+      e.preventDefault();
+    }
+  });
+
+});
+</script>
+</body>
+</html>
