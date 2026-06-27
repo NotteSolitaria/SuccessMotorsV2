@@ -1,0 +1,206 @@
+<apex:page standardController="Opportunity"
+           extensions="OpportunityPDFController"
+           renderAs="pdf"
+           applyHtmlTag="false"
+           applyBodyTag="false"
+           showHeader="false"
+           sidebar="false">
+    <html>
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+            <style type="text/css">
+                @page {
+                    size: A4;
+                    margin: 20mm 15mm 20mm 15mm;
+
+                    @top-center {
+                        content: element(header);
+                    }
+                    @bottom-center {
+                        content: element(footer);
+                    }
+                }
+
+                div.header {
+                    position: running(header);
+                    font-family: 'Arial Unicode MS', 'Arial', sans-serif;
+                    font-size: 10pt;
+                    color: #666;
+                    border-bottom: 1px solid #ddd;
+                    padding-bottom: 5px;
+                }
+
+                div.footer {
+                    position: running(footer);
+                    font-family: 'Arial Unicode MS', 'Arial', sans-serif;
+                    font-size: 9pt;
+                    color: #777;
+                    border-top: 1px solid #ddd;
+                    padding-top: 5px;
+                    text-align: center;
+                }
+
+                body {
+                    font-family: 'Arial Unicode MS', 'Arial', sans-serif;
+                    font-size: 11pt;
+                    color: #222;
+                    line-height: 1.4;
+                }
+
+                .content {
+                    margin-top: 130px;
+                }
+
+                .info-table {
+                    width: 100%;
+                    margin-bottom: 30px;
+                    border-collapse: collapse;
+                }
+                .info-table td {
+                    width: 50%;
+                    vertical-align: top;
+                }
+                .section-title {
+                    font-weight: bold;
+                    font-size: 12pt;
+                    text-transform: uppercase;
+                    color: #1b4f72;
+                    margin-bottom: 5px;
+                }
+
+                .product-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    -fs-table-paginate: paginate;
+                    margin-top: 20px;
+                }
+                .product-table th {
+                    background-color: #1b4f72;
+                    color: white;
+                    padding: 8px;
+                    font-size: 10pt;
+                    text-align: left;
+                    text-transform: uppercase;
+                }
+                .product-table td {
+                    padding: 8px;
+                    border-bottom: 1px solid #ddd;
+                    font-size: 10pt;
+                }
+
+                .total-section {
+                    float: right;
+                    width: 40%;
+                    margin-top: 20px;
+                    font-size: 11pt;
+                }
+                .total-row {
+                    font-weight: bold;
+                    font-size: 12pt;
+                    color: #1b4f72;
+                    border-top: 2px solid #1b4f72;
+                    padding-top: 5px;
+                }
+
+                .page-number:before {
+                    content: counter(page);
+                }
+                .page-count:before {
+                    content: counter(pages);
+                }
+            </style>
+        </head>
+
+        <body>
+            <div class="header">
+                <table style="width:100%;">
+                    <tr>
+                        <td>
+                            <strong style="font-size: 14pt; color: #1b4f72;">{!myOrg.Name}</strong><br/>
+                            {!myOrg.Street}<br/>
+                            {!myOrg.City}, {!myOrg.State} {!myOrg.PostalCode}<br/>
+                            {!myOrg.Country}
+                        </td>
+                        <td style="text-align: right; vertical-align: top;">
+                            <strong style="font-size: 16pt; color: #1b4f72;">INVOICE</strong><br/>
+                            <strong>Date:</strong>
+                            <apex:outputText value="{0,date,dd.MM.yyyy}">
+                                <apex:param value="{!opp.CloseDate}"/>
+                            </apex:outputText><br/>
+                            <strong>Invoice NO.:</strong> {!opp.Invoice_Number__c}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="footer">
+                {!myOrg.Name} | Page <span class="page-number"></span> from <span class="page-count"></span>
+            </div>
+
+            <div class="content">
+                <table class="info-table">
+                    <tr>
+                        <td>
+                            <div class="section-title">Bill To</div>
+                            <apex:outputPanel rendered="{!NOT(ISNULL(primaryContact))}">
+                                <strong>{!primaryContact.Contact.Name}</strong><br/>
+                                {!primaryContact.Contact.MailingStreet}<br/>
+                                {!primaryContact.Contact.MailingCity}, {!primaryContact.Contact.MailingState} {!primaryContact.Contact.MailingPostalCode}<br/>
+                                {!primaryContact.Contact.MailingCountry}<br/>
+                                Phone: {!primaryContact.Contact.Phone}<br/>
+                                Email: {!primaryContact.Contact.Email}
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!ISNULL(primaryContact)}">
+                                <span style="color:red;">Primary contact is not specified in Opportunity Contact Roles.</span>
+                            </apex:outputPanel>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th style="text-align: right; width: 15%;">QTY</th>
+                            <th style="text-align: right; width: 20%;">Unit Price</th>
+                            <th style="text-align: right; width: 20%;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <apex:repeat value="{!products}" var="prod">
+                            <tr>
+                                <td>{!prod.Product2.Name}</td>
+                                <td style="text-align: right;">
+                                    <apex:outputText value="{0, number, ###,###,##0.00}">
+                                        <apex:param value="{!prod.Quantity}"/>
+                                    </apex:outputText>
+                                </td>
+                                <td style="text-align: right;">
+                                    <apex:outputText value="{0, number, ¤###,###,##0.00}">
+                                        <apex:param value="{!prod.UnitPrice}"/>
+                                    </apex:outputText>
+                                </td>
+                                <td style="text-align: right;">
+                                    <apex:outputText value="{0, number, ¤###,###,##0.00}">
+                                        <apex:param value="{!prod.TotalPrice}"/>
+                                    </apex:outputText>
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                    </tbody>
+                </table>
+
+                <table class="total-section">
+                    <tr class="total-row">
+                        <td style="padding: 5px;">Balance Due:</td>
+                        <td style="text-align: right; padding: 5px;">
+                            <apex:outputText value="{0, number, ¤###,###,##0.00}">
+                                <apex:param value="{!opp.Amount}"/>
+                            </apex:outputText>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </body>
+    </html>
+</apex:page>
