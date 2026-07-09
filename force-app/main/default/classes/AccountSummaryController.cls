@@ -17,33 +17,51 @@ public with sharing class AccountSummaryController {
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getAccountData(Id recordId, String searchTerm, Decimal minAmount, Integer pageNumber) {
         Integer pageSize = 10;
-        Integer offsetValue = (pageNumber - 1) * pageSize;
+        Integer offsetValue = calculateOffset(pageNumber, pageSize);
         
-        String query = 'SELECT Id, Name, (SELECT Id, Name, CreatedDate, CloseDate, Amount, StageName FROM Opportunities WHERE IsClosed = true AND IsWon = true) FROM Account';
+        String baseQuery = 'SELECT Id, Name, (SELECT Id, Name, CreatedDate, CloseDate, Amount, StageName FROM Opportunities WHERE IsClosed = true AND IsWon = true) FROM Account';
         String countQuery = 'SELECT count() FROM Account';
-        String whereClause = '';
-        List<String> conditions = new List<String>();
-
-        if (String.isNotBlank(recordId)) {
-            conditions.add('Id = :recordId');
-        } else {
-            if (String.isNotBlank(searchTerm)) {
-                String likeTerm = '%' + searchTerm + '%';
-                conditions.add('Name LIKE :likeTerm');
-            }
-        }
-
-        if (!conditions.isEmpty()) {
-            whereClause = ' WHERE ' + String.join(conditions, ' AND ');
-            query += whereClause;
-            countQuery += whereClause;
-        }
-
-        query += ' ORDER BY Name LIMIT :pageSize OFFSET :offsetValue';
+        
+        String whereClause = buildWhereClause(recordId, searchTerm);
+        
+        String query = baseQuery + whereClause + ' ORDER BY Name LIMIT ' + pageSize + ' OFFSET ' + offsetValue;
+        countQuery += whereClause;
 
         List<Account> accounts = Database.query(query);
         Integer totalRecords = Database.countQuery(countQuery);
         
+        List<AccountWrapper> wrappers = buildWrappers(accounts, minAmount);
+
+        return new Map<String, Object>{
+            'records' => wrappers,
+            'totalCount' => totalRecords
+        };
+    }
+
+    private static Integer calculateOffset(Integer pageNumber, Integer pageSize) {
+        if (pageNumber == null || pageNumber < 1) {
+            pageNumber = 1;
+        }
+        return (pageNumber - 1) * pageSize;
+    }
+
+    private static String buildWhereClause(Id recordId, String searchTerm) {
+        List<String> conditions = new List<String>();
+
+        if (String.isNotBlank(recordId)) {
+            conditions.add('Id = \'' + String.escapeSingleQuotes(recordId) + '\'');
+        } else if (String.isNotBlank(searchTerm)) {
+            conditions.add('Name LIKE \'%' + String.escapeSingleQuotes(searchTerm) + '%\'');
+        }
+
+        if (!conditions.isEmpty()) {
+            return ' WHERE ' + String.join(conditions, ' AND ');
+        }
+        
+        return '';
+    }
+
+    private static List<AccountWrapper> buildWrappers(List<Account> accounts, Decimal minAmount) {
         List<AccountWrapper> wrappers = new List<AccountWrapper>();
         
         for (Account acc : accounts) {
@@ -61,11 +79,8 @@ public with sharing class AccountSummaryController {
                 wrappers.add(new AccountWrapper(acc, validOpps, total));
             }
         }
-
-        return new Map<String, Object>{
-            'records' => wrappers,
-            'totalCount' => totalRecords
-        };
+        
+        return wrappers;
     }
 
     @AuraEnabled(cacheable=true)

@@ -1,9 +1,5 @@
 public class OrderConfirmationEmailHandler implements Messaging.InboundEmailHandler {
 
-  private static final String STAGE_AWAITING = 'Negotiation/Review';
-  private static final String STAGE_APPROVED  = 'Closed Won'; 
-  private static final String STAGE_REJECTED  = 'Closed Lost';
-
   public Messaging.InboundEmailResult handleInboundEmail(
     Messaging.InboundEmail email,
     Messaging.InboundEnvelope envelope
@@ -15,9 +11,8 @@ public class OrderConfirmationEmailHandler implements Messaging.InboundEmailHand
       : email.htmlBody;
 
     String orderNumber = extractOrderNumber(email.subject, body);
-    String decision = extractDecision(body);
 
-    if (String.isBlank(orderNumber) || String.isBlank(decision)) {
+    if (String.isBlank(orderNumber)) {
       result.success = true; 
       return result;
     }
@@ -29,30 +24,32 @@ public class OrderConfirmationEmailHandler implements Messaging.InboundEmailHand
       LIMIT 1
     ];
 
-    if (opps.isEmpty() || opps[0].StageName != STAGE_AWAITING) {
+    if (opps.isEmpty()) {
       result.success = true;
       return result;
     }
 
-  Opportunity opp = opps[0];
-  opp.StageName = decision == 'Approved' ? STAGE_APPROVED : STAGE_REJECTED;
-  update opp;
+    Opportunity opp = opps[0];
+    
+    List<Schema.PicklistEntry> stageValues = Opportunity.StageName.getDescribe().getPicklistValues();
+    
+    for (Integer i = 0; i < stageValues.size() - 1; i++) {
+      if (stageValues[i].getValue() == opp.StageName) {
+        opp.StageName = stageValues[i + 1].getValue();
+        break;
+      }
+    }
 
-  result.success = true;
-  return result;
-}
+    update opp;
+
+    result.success = true;
+    return result;
+  }
 
   private static String extractOrderNumber(String subject, String body) {
     String text = (subject + ' ' + body).toUpperCase();
     Pattern p = Pattern.compile('INV-\\d+');
     Matcher m = p.matcher(text);
     return m.find() ? m.group() : null;
-  }
-
-  private static String extractDecision(String body) {
-    String text = body.toUpperCase();
-    if (text.contains('APPROVED')) return 'Approved';
-    if (text.contains('REJECTED')) return 'Rejected';
-    return null;
   }
 }

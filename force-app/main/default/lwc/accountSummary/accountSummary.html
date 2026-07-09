@@ -1,20 +1,14 @@
 <template>
     <lightning-card title="Account Opportunities Summary" icon-name="standard:account">
-        
+
         <template lwc:if={isTabContext}>
             <div class="slds-m-around_medium slds-grid slds-gutters slds-wrap">
                 <div class="slds-col slds-size_1-of-2">
-                    <lightning-input 
-                        type="search" 
-                        label="Search Account Name" 
-                        onchange={handleSearchChange}>
+                    <lightning-input type="search" label="Search Account Name" onchange={handleSearchChange}>
                     </lightning-input>
                 </div>
                 <div class="slds-col slds-size_1-of-2">
-                    <lightning-input 
-                        type="number" 
-                        label="Min Total Opportunity Amount" 
-                        formatter="currency" 
+                    <lightning-input type="number" label="Min Total Opportunity Amount" formatter="currency"
                         onchange={handleAmountChange}>
                     </lightning-input>
                 </div>
@@ -24,45 +18,33 @@
         <div class="slds-m-around_medium">
             <lightning-accordion allow-multiple-sections-open>
                 <template for:each={accountData} for:item="acc">
-                    <lightning-accordion-section 
-                        key={acc.accountId} 
-                        name={acc.accountId} 
-                        label={acc.accordionLabel}>
-                        
-                        <lightning-datatable
-                            key-field="Id"
-                            data={acc.opportunities}
-                            columns={oppColumns}
-                            onrowaction={handleRowAction}
-                            hide-checkbox-column>
-                        </lightning-datatable>
-                        
+                    <lightning-accordion-section key={acc.accountId} name={acc.accountId} label={acc.accordionLabel}>
+
+                        <template lwc:if={acc.opportunities.length}>
+                            <lightning-datatable key-field="Id" data={acc.opportunities} columns={oppColumns}
+                                onrowaction={handleRowAction} hide-checkbox-column>
+                            </lightning-datatable>
+                        </template>
+
+                        <template lwc:else>
+                            <p class="slds-text-align_center slds-p-around_small slds-text-color_weak">
+                                No opportunities found for this Account.
+                            </p>
+                        </template>
+
                     </lightning-accordion-section>
                 </template>
             </lightning-accordion>
-            
-            <template lwc:if={accountData.length}>
-                <div class="slds-text-align_center slds-text-color_weak slds-m-top_medium">
-                    No matching accounts found.
-                </div>
-            </template>
         </div>
 
         <template lwc:if={isTabContext}>
             <div class="slds-m-around_medium slds-grid slds-grid_align-center slds-grid_vertical-align-center">
-                <lightning-button 
-                    label="Previous" 
-                    icon-name="utility:chevronleft" 
-                    onclick={handlePrev} 
+                <lightning-button label="Previous" icon-name="utility:chevronleft" onclick={handlePrev}
                     disabled={isFirstPage}>
                 </lightning-button>
                 <span class="slds-m-horizontal_medium">Page {pageNumber}</span>
-                <lightning-button 
-                    label="Next" 
-                    icon-name="utility:chevronright" 
-                    icon-position="right" 
-                    onclick={handleNext} 
-                    disabled={isLastPage}>
+                <lightning-button label="Next" icon-name="utility:chevronright" icon-position="right"
+                    onclick={handleNext} disabled={isLastPage}>
                 </lightning-button>
             </div>
         </template>
@@ -72,30 +54,34 @@
         <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_medium">
             <div class="slds-modal__container">
                 <header class="slds-modal__header">
-                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeModal}>
-                        <lightning-icon icon-name="utility:close" alternative-text="close" variant="inverse" size="small"></lightning-icon>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={closeModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" variant="inverse"
+                            size="small"></lightning-icon>
                         <span class="slds-assistive-text">Close</span>
                     </button>
                     <h2 class="slds-text-heading_medium slds-hyphenate">Opportunity Products</h2>
                 </header>
-                
+
                 <div class="slds-modal__content slds-p-around_medium">
                     <template lwc:if={isLoadingProducts}>
                         <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
                     </template>
                     <template lwc:else>
-                        <lightning-datatable
-                            key-field="Id"
-                            data={modalProducts}
-                            columns={prodColumns}
-                            hide-checkbox-column>
-                        </lightning-datatable>
                         <template lwc:if={modalProducts.length}>
-                            <p class="slds-text-align_center slds-p-around_small">No products found for this Opportunity.</p>
+                            <lightning-datatable key-field="Id" data={modalProducts} columns={prodColumns}
+                                hide-checkbox-column>
+                            </lightning-datatable>
+                        </template>
+
+                        <template lwc:else>
+                            <p class="slds-text-align_center slds-p-around_small">
+                                No products found for this Opportunity.
+                            </p>
                         </template>
                     </template>
                 </div>
-                
+
                 <footer class="slds-modal__footer">
                     <lightning-button label="Close" onclick={closeModal}></lightning-button>
                 </footer>

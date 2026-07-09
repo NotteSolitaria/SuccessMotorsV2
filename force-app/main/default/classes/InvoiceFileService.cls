@@ -37,13 +37,8 @@ public with sharing class InvoiceFileService {
             cv.VersionData = pdfBlob;
             cv.IsMajorVersion = true;
 
-            if (existingDocumentId != null) {
-                cv.ContentDocumentId = existingDocumentId;
-                insert cv;
-            } else {
-                cv.FirstPublishLocationId = recordId;
-                insert cv;
-            }
+            cv.FirstPublishLocationId = recordId;
+            insert cv;
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {

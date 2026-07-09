@@ -18,12 +18,7 @@ public with sharing class InvoiceEmailController {
         }
 
         try {
-            Opportunity opp = [
-                SELECT Id, Invoice_Number__c
-                FROM Opportunity
-                WHERE Id = :opportunityId
-                LIMIT 1
-            ];
+            Opportunity opp = getOpportunityData(opportunityId);
 
             if (String.isBlank(opp.Invoice_Number__c)) {
                 throw new AuraHandledException('Invoice Number is not available. Generate an invoice first.');
@@ -42,8 +37,8 @@ public with sharing class InvoiceEmailController {
                 opportunityId
             );
 
-            OpportunityContactRole primaryRole = getPrimaryContactRole(opportunityId);
-            Id contentDocumentId = findLinkedInvoiceDocumentId(opportunityId, opp.Invoice_Number__c);
+            OpportunityContactRole primaryRole = opp.OpportunityContactRoles.isEmpty() ? null : opp.OpportunityContactRoles[0];
+            Id contentDocumentId = findLinkedInvoiceDocumentId(opp);
 
             InvoiceEmailData data = new InvoiceEmailData();
             data.subject = renderedEmail.getSubject();
@@ -78,19 +73,14 @@ public with sharing class InvoiceEmailController {
         }
 
         try {
-            Opportunity opp = [
-                SELECT Id, Invoice_Number__c
-                FROM Opportunity
-                WHERE Id = :opportunityId
-                LIMIT 1
-            ];
+            Opportunity opp = getOpportunityData(opportunityId);
 
-            OpportunityContactRole primaryRole = getPrimaryContactRole(opportunityId);
+            OpportunityContactRole primaryRole = opp.OpportunityContactRoles.isEmpty() ? null : opp.OpportunityContactRoles[0];
             if (primaryRole == null || String.isBlank(primaryRole.Contact.Email)) {
                 throw new AuraHandledException('Primary contact with a valid email address was not found.');
             }
 
-            Id contentDocumentId = findLinkedInvoiceDocumentId(opportunityId, opp.Invoice_Number__c);
+            Id contentDocumentId = findLinkedInvoiceDocumentId(opp);
             if (contentDocumentId == null) {
                 throw new AuraHandledException('Invoice PDF was not found. Use Generate Invoice first.');
             }
@@ -114,6 +104,8 @@ public with sharing class InvoiceEmailController {
             email.setFileAttachments(new List<Messaging.EmailFileAttachment>{ attachment });
             email.setWhatId(opportunityId);
             email.setSaveAsActivity(true);
+            
+            email.setReplyTo(getInboundEmailAddress());
 
             Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ email });
         } catch (AuraHandledException e) {
@@ -123,26 +115,65 @@ public with sharing class InvoiceEmailController {
         }
     }
 
-    private static OpportunityContactRole getPrimaryContactRole(Id opportunityId) {
-        List<OpportunityContactRole> roles = [
-            SELECT Contact.Name, Contact.Email
-            FROM OpportunityContactRole
-            WHERE OpportunityId = :opportunityId AND IsPrimary = TRUE
+    private static Opportunity getOpportunityData(Id opportunityId) {
+        List<Opportunity> opps = [
+            SELECT Id, Invoice_Number__c,
+                (SELECT Contact.Name, Contact.Email 
+                 FROM OpportunityContactRoles 
+                 WHERE IsPrimary = TRUE LIMIT 1),
+                (SELECT ContentDocumentId, ContentDocument.Title 
+                 FROM ContentDocumentLinks)
+            FROM Opportunity
+            WHERE Id = :opportunityId
             LIMIT 1
         ];
-        return roles.isEmpty() ? null : roles[0];
+
+        if (opps.isEmpty()) {
+            throw new AuraHandledException('Opportunity not found.');
+        }
+        return opps[0];
     }
 
-    private static Id findLinkedInvoiceDocumentId(Id recordId, String invoiceName) {
-        for (ContentDocumentLink link : [
-            SELECT ContentDocumentId, ContentDocument.Title
-            FROM ContentDocumentLink
-            WHERE LinkedEntityId = :recordId
-        ]) {
-            if (link.ContentDocument.Title == invoiceName) {
+    private static Id findLinkedInvoiceDocumentId(Opportunity opp) {
+        if (String.isBlank(opp.Invoice_Number__c) || opp.ContentDocumentLinks == null) {
+            return null;
+        }
+        
+        for (ContentDocumentLink link : opp.ContentDocumentLinks) {
+            if (link.ContentDocument.Title == opp.Invoice_Number__c) {
                 return link.ContentDocumentId;
             }
         }
         return null;
+    }
+
+    private static String getInboundEmailAddress() {
+        try {
+            ApexClass handlerClass = [
+                SELECT Id 
+                FROM ApexClass 
+                WHERE Name = 'OrderConfirmationEmailHandler' 
+                LIMIT 1
+            ];
+
+            EmailServicesFunction emailFunction = [
+                SELECT Id 
+                FROM EmailServicesFunction 
+                WHERE ApexClassId = :handlerClass.Id 
+                LIMIT 1
+            ];
+
+            EmailServicesAddress address = [
+                SELECT LocalPart, EmailDomainName 
+                FROM EmailServicesAddress 
+                WHERE FunctionId = :emailFunction.Id 
+                LIMIT 1
+            ];
+            
+            return address.LocalPart + '@' + address.EmailDomainName;
+            
+        } catch (Exception e) {
+            return UserInfo.getUserEmail();
+        }
     }
 }
