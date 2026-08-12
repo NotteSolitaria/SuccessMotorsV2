@@ -29,8 +29,6 @@ public with sharing class InvoiceFileService {
                 pdfBlob = pdfPage.getContentAsPDF();
             }
 
-            Id existingDocumentId = findLinkedInvoiceDocumentId(recordId, invoiceName);
-
             ContentVersion cv = new ContentVersion();
             cv.Title = invoiceName;
             cv.PathOnClient = invoiceName + '.pdf';
@@ -44,18 +42,5 @@ public with sharing class InvoiceFileService {
         } catch (Exception e) {
             throw new AuraHandledException('Failed to create invoice: ' + e.getMessage());
         }
-    }
-
-    private static Id findLinkedInvoiceDocumentId(Id recordId, String invoiceName) {
-        for (ContentDocumentLink link : [
-            SELECT ContentDocumentId, ContentDocument.Title
-            FROM ContentDocumentLink
-            WHERE LinkedEntityId = :recordId
-        ]) {
-            if (link.ContentDocument.Title == invoiceName) {
-                return link.ContentDocumentId;
-            }
-        }
-        return null;
     }
 }

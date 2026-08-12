@@ -169,9 +169,8 @@ public with sharing class InvoiceEmailController {
                 WHERE FunctionId = :emailFunction.Id 
                 LIMIT 1
             ];
-            
+
             return address.LocalPart + '@' + address.EmailDomainName;
-            
         } catch (Exception e) {
             return UserInfo.getUserEmail();
         }
